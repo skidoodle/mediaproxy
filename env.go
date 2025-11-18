@@ -33,6 +33,13 @@ func getEnvDuration(key string, fallback time.Duration) time.Duration {
 	return fallback
 }
 
+func getEnvString(key string, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
+
 func getEnvStringSlice(key string, fallback []string) []string {
 	if value, ok := os.LookupEnv(key); ok {
 		if value == "" {

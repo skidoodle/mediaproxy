@@ -11,11 +11,12 @@ services:
       # - ALLOWED_DOMAINS=images.unsplash.com,static.pexels.com,*.example.com
       # - DEFAULT_IMAGE_QUALITY=100
       # - MAX_ALLOWED_SIZE=10485760
+      # - BASE_URL=cdn.example.com
     # deploy:
     #   resources:
     #     limits:
-    #       cpus: '0.5'      # Limit to 50% of a single CPU core
-    #       memory: '256M'   # Limit to 256 Megabytes of RAM
+    #       cpus: '0.5'
+    #       memory: '256M'
     #     reservations:
     #       cpus: '0.25'
     #       memory: '128M'

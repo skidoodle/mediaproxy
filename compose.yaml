@@ -7,6 +7,7 @@ services:
     restart: unless-stopped
     environment:
       - CACHE_TTL=30m
+      - BASE_URL=cdn.example.com
       - ALLOWED_DOMAINS=images.unsplash.com,static.pexels.com,*.example.com
       - DEFAULT_IMAGE_QUALITY=100
       - MAX_ALLOWED_SIZE=10485760
