@@ -31,7 +31,7 @@ This mode is activated by setting the `BASE_URL` environment variable. It allows
 
 1. Set the environment variable `BASE_URL=cdn.example.com`.
 2. Request `https://media.example.com/object/image.jpg`.
-3. The service will proxy the request to `https://cdn.albert.lol/object/image.jpg`.
+3. The service will proxy the request to `https://cdn.example.com/object/image.jpg`.
 
 This is useful for cleaner URLs and when proxying to a single, trusted domain.
 
