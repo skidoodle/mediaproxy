@@ -165,8 +165,8 @@ func (app *App) handleProxy(w http.ResponseWriter, r *http.Request) {
 	defer headResp.Body.Close()
 
 	if headResp.StatusCode != http.StatusOK {
-		logger.Warn("Origin server returned non-200 status for HEAD request", "status", headResp.StatusCode)
-		w.WriteHeader(headResp.StatusCode)
+		logger.Warn("Origin server returned non-200 status for HEAD request, passing through", "status", headResp.StatusCode)
+		app.handleStream(w, r, mediaURL)
 		return
 	}
 
