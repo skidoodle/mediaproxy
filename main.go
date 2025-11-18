@@ -166,28 +166,20 @@ func (app *App) handleProxy(w http.ResponseWriter, r *http.Request) {
 
 	if headResp.StatusCode != http.StatusOK {
 		logger.Warn("Origin server returned non-200 status for HEAD request", "status", headResp.StatusCode)
-		http.Error(w, fmt.Sprintf("Media source returned status: %d", headResp.StatusCode), headResp.StatusCode)
+		w.WriteHeader(headResp.StatusCode)
 		return
 	}
 
 	headerContentType := headResp.Header.Get("Content-Type")
-	if !isAllowedType(headerContentType, true) {
-		logger.Warn("Unsupported content type in header", "content_type", headerContentType)
-		http.Error(w, fmt.Sprintf("Unsupported content type from header: %s", headerContentType), http.StatusUnsupportedMediaType)
-		return
-	}
 	mediaTypeCategory := strings.Split(headerContentType, "/")[0]
 
 	switch mediaTypeCategory {
 	case "image":
 		logger.Debug("Delegating to image handler")
 		app.handleImage(w, r, mediaURL)
-	case "video", "audio":
-		logger.Debug("Delegating to stream handler")
-		app.handleStream(w, r, mediaURL)
 	default:
-		logger.Warn("Media type passed initial checks but is not an image, video, or audio", "category", mediaTypeCategory)
-		http.Error(w, "Unsupported media type", http.StatusUnsupportedMediaType)
+		logger.Debug("Passing through unhandled content type", "content_type", headerContentType)
+		app.handleStream(w, r, mediaURL)
 	}
 }
 
@@ -217,34 +209,52 @@ func (app *App) handleImage(w http.ResponseWriter, r *http.Request, mediaURL str
 
 	mtype := mimetype.Detect(mediaData)
 	if !strings.HasPrefix(mtype.String(), "image/") {
-		logger.Warn("Content sniffing detected non-image type after HEAD request", "sniffed_type", mtype.String())
-		http.Error(w, "Content sniffing detected non-image type", http.StatusUnsupportedMediaType)
+		logger.Warn("Content sniffing detected non-image type; passing through", "sniffed_type", mtype.String())
+		w.Header().Set("Content-Type", mtype.String())
+		w.Write(mediaData)
 		return
 	}
 
-	var entryToCache CacheEntry
-	isAnimated := false
 	if mtype.Is("image/gif") {
-		var gifErr error
-		isAnimated, gifErr = isGif(mediaData)
-		if gifErr != nil {
-			logger.Warn("Could not determine GIF animation, treating as static", "error", gifErr)
-		}
-	}
-
-	if isAnimated {
-		entryToCache = CacheEntry{ContentType: mtype.String(), Data: mediaData}
-	} else {
-		optimizedImage, err := optimizeMedia(mediaData, app.Config.DefaultImageQuality)
-		if err != nil {
-			logger.Error("Failed to process image", "error", err)
-			http.Error(w, "Could not process image", http.StatusInternalServerError)
+		isAnimated, _ := isGif(mediaData)
+		if isAnimated {
+			logger.Debug("Passing through animated GIF")
+			entryToCache := CacheEntry{ContentType: mtype.String(), Data: mediaData}
+			app.Cache.SetWithTTL(mediaURL, entryToCache, int64(len(mediaData)), app.Config.CacheTTL)
+			w.Header().Set("Content-Type", entryToCache.ContentType)
+			w.Write(entryToCache.Data)
 			return
 		}
-		entryToCache = CacheEntry{ContentType: "image/webp", Data: optimizedImage}
 	}
 
-	app.Cache.SetWithTTL(mediaURL, entryToCache, int64(len(entryToCache.Data)), app.Config.CacheTTL)
+	if mtype.Is("image/ico") || mtype.Is("image/svg+xml") || mtype.Is("image/x-icon") {
+		logger.Debug("Passing through unsupported image type", "type", mtype.String())
+		entryToCache := CacheEntry{ContentType: mtype.String(), Data: mediaData}
+		app.Cache.SetWithTTL(mediaURL, entryToCache, int64(len(mediaData)), app.Config.CacheTTL)
+		w.Header().Set("Content-Type", entryToCache.ContentType)
+		w.Write(entryToCache.Data)
+		return
+	}
+
+	optimizedImage, err := optimizeMedia(mediaData, app.Config.DefaultImageQuality)
+
+	if err != nil || len(optimizedImage) >= len(mediaData) {
+		if err != nil {
+			logger.Warn("Could not process image, serving original", "error", err)
+		} else {
+			logger.Debug("Optimized image was larger than original, serving original")
+		}
+
+		entryToCache := CacheEntry{ContentType: mtype.String(), Data: mediaData}
+		app.Cache.SetWithTTL(mediaURL, entryToCache, int64(len(mediaData)), app.Config.CacheTTL)
+		w.Header().Set("Content-Type", entryToCache.ContentType)
+		w.Write(entryToCache.Data)
+		return
+	}
+
+	logger.Debug("Successfully optimized image", "original_size", len(mediaData), "optimized_size", len(optimizedImage))
+	entryToCache := CacheEntry{ContentType: "image/webp", Data: optimizedImage}
+	app.Cache.SetWithTTL(mediaURL, entryToCache, int64(len(optimizedImage)), app.Config.CacheTTL)
 	app.Cache.Wait()
 
 	w.Header().Set("Content-Type", entryToCache.ContentType)

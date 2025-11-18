@@ -52,24 +52,6 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// isAllowedType performs a categorical check for 'image/*', 'video/*', and 'audio/*'.
-func isAllowedType(mimeType string, allowGeneric bool) bool {
-	mimeType = strings.Split(mimeType, ";")[0]
-	category := strings.Split(mimeType, "/")[0]
-
-	switch category {
-	case "image", "video", "audio":
-		return true
-	}
-
-	// Allow generic binary streams on the initial HEAD request, forcing the
-	// more reliable content sniffing to make the final decision.
-	if allowGeneric && mimeType == "application/octet-stream" {
-		return true
-	}
-	return false
-}
-
 // isAllowedDomain checks if a host is in the configured whitelist.
 func isAllowedDomain(host string, allowedDomains []string) bool {
 	if len(allowedDomains) == 0 {
