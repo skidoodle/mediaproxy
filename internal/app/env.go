@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"log/slog"
@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// getEnvLogLevel retrieves a slog.Level from the specified environment variable.
+// If the variable is not set or invalid, it returns the provided fallback level.
 func getEnvLogLevel(key string, fallback slog.Level) slog.Level {
 	if value, ok := os.LookupEnv(key); ok {
 		switch strings.ToUpper(value) {
@@ -24,6 +26,8 @@ func getEnvLogLevel(key string, fallback slog.Level) slog.Level {
 	return fallback
 }
 
+// getEnvDuration retrieves a time.Duration from the specified environment variable.
+// If the variable is not set or cannot be parsed, it returns the fallback duration.
 func getEnvDuration(key string, fallback time.Duration) time.Duration {
 	if value, ok := os.LookupEnv(key); ok {
 		if duration, err := time.ParseDuration(value); err == nil {
@@ -33,6 +37,8 @@ func getEnvDuration(key string, fallback time.Duration) time.Duration {
 	return fallback
 }
 
+// getEnvString retrieves a string from the specified environment variable.
+// If the variable is not set, it returns the fallback string.
 func getEnvString(key string, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
@@ -40,6 +46,8 @@ func getEnvString(key string, fallback string) string {
 	return fallback
 }
 
+// getEnvStringSlice retrieves a comma-separated list of strings from the specified
+// environment variable. If the variable is not set or empty, it returns the fallback slice.
 func getEnvStringSlice(key string, fallback []string) []string {
 	if value, ok := os.LookupEnv(key); ok {
 		if value == "" {
@@ -50,6 +58,8 @@ func getEnvStringSlice(key string, fallback []string) []string {
 	return fallback
 }
 
+// getEnvInt retrieves an integer from the specified environment variable.
+// If the variable is not set or cannot be parsed, it returns the fallback integer.
 func getEnvInt(key string, fallback int) int {
 	if value, ok := os.LookupEnv(key); ok {
 		if i, err := strconv.Atoi(value); err == nil {
@@ -59,6 +69,8 @@ func getEnvInt(key string, fallback int) int {
 	return fallback
 }
 
+// getEnvInt64 retrieves a 64-bit integer from the specified environment variable.
+// If the variable is not set or cannot be parsed, it returns the fallback 64-bit integer.
 func getEnvInt64(key string, fallback int64) int64 {
 	if value, ok := os.LookupEnv(key); ok {
 		if i, err := strconv.ParseInt(value, 10, 64); err == nil {
