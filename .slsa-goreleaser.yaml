@@ -14,7 +14,7 @@ builds:
       - -trimpath
       - -tags=netgo
     ldflags:
-      - -s -w -extldflags "-static"
+      - -s -w
       - -X main.Version={{.Version}}
 
 archives:
