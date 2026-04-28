@@ -43,6 +43,7 @@ func main() {
 			application.Logger.Error("Server forced to shutdown", "error", err)
 			os.Exit(1)
 		}
+		application.Close()
 	}()
 
 	application.Logger.Info("Starting server", "address", server.Addr, "log_level", application.Config.LogLevel.String())

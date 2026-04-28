@@ -79,3 +79,14 @@ func getEnvInt64(key string, fallback int64) int64 {
 	}
 	return fallback
 }
+
+// getEnvBool retrieves a boolean from the specified environment variable.
+// If the variable is not set or cannot be parsed, it returns the fallback boolean.
+func getEnvBool(key string, fallback bool) bool {
+	if value, ok := os.LookupEnv(key); ok {
+		if b, err := strconv.ParseBool(value); err == nil {
+			return b
+		}
+	}
+	return fallback
+}

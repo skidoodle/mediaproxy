@@ -74,7 +74,9 @@ func isIgnoredPath(path string) bool {
 // and bytes saved via compression.
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Source", "https://github.com/skidoodle/mediaproxy")
+		w.Header().Set("X-Source", "github.com/skidoodle/mediaproxy")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'")
 
 		if isIgnoredPath(r.URL.Path) {
 			sendError(w, r, http.StatusNotFound)

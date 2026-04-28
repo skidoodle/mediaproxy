@@ -14,6 +14,7 @@ type Config struct {
 	ClientTimeout       time.Duration
 	LogLevel            slog.Level
 	BaseURL             string
+	AllowPrivateIPs     bool
 }
 
 // loadConfig parses environment variables and returns a populated Config struct.
@@ -27,6 +28,7 @@ func loadConfig() *Config {
 		ClientTimeout:       getEnvDuration("CLIENT_TIMEOUT", 2*time.Minute),
 		BaseURL:             getEnvString("BASE_URL", ""),
 		LogLevel:            getEnvLogLevel("LOG_LEVEL", slog.LevelInfo),
+		AllowPrivateIPs:     getEnvBool("ALLOW_PRIVATE_IPS", false),
 	}
 }
 

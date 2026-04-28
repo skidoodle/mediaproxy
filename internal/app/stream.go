@@ -27,6 +27,8 @@ func (app *App) handleStream(w http.ResponseWriter, r *http.Request, mediaURL st
 	}
 	if userAgentHeader := r.Header.Get("User-Agent"); userAgentHeader != "" {
 		originReq.Header.Set("User-Agent", userAgentHeader)
+	} else {
+		originReq.Header.Set("User-Agent", app.UserAgent)
 	}
 
 	originResp, err := app.Client.Do(originReq)
@@ -41,9 +43,21 @@ func (app *App) handleStream(w http.ResponseWriter, r *http.Request, mediaURL st
 		}
 	}()
 
-	for key, values := range originResp.Header {
-		for _, value := range values {
-			w.Header().Add(key, value)
+	// Only copy a safe subset of headers from the origin response.
+	safeHeaders := []string{
+		"Content-Type",
+		"Content-Length",
+		"Content-Range",
+		"Accept-Ranges",
+		"Cache-Control",
+		"Expires",
+		"Last-Modified",
+		"Etag",
+	}
+
+	for _, headerName := range safeHeaders {
+		if val := originResp.Header.Get(headerName); val != "" {
+			w.Header().Set(headerName, val)
 		}
 	}
 

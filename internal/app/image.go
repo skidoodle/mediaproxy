@@ -16,7 +16,20 @@ import (
 func (app *App) handleImage(w http.ResponseWriter, r *http.Request, mediaURL string) {
 	logger := r.Context().Value(loggerKey).(*slog.Logger)
 
-	resp, err := app.Client.Get(mediaURL)
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, mediaURL, nil)
+	if err != nil {
+		logger.Error("Failed to create request for origin", "error", err)
+		sendError(w, r, http.StatusInternalServerError)
+		return
+	}
+
+	if ua := r.Header.Get("User-Agent"); ua != "" {
+		req.Header.Set("User-Agent", ua)
+	} else {
+		req.Header.Set("User-Agent", app.UserAgent)
+	}
+
+	resp, err := app.Client.Do(req)
 	if err != nil {
 		logger.Error("Failed to fetch image from origin", "error", err)
 		sendError(w, r, http.StatusInternalServerError)
@@ -57,6 +70,9 @@ func (app *App) handleImage(w http.ResponseWriter, r *http.Request, mediaURL str
 	if !strings.HasPrefix(mtype.String(), "image/") {
 		logger.Warn("Content sniffing detected non-image type; passing through", "sniffed_type", mtype.String())
 		w.Header().Set("Content-Type", mtype.String())
+		if cacheControl := resp.Header.Get("Cache-Control"); cacheControl != "" {
+			w.Header().Set("Cache-Control", cacheControl)
+		}
 		if _, err := w.Write(mediaData); err != nil {
 			logger.Debug("Failed to write sniffed non-image data", "error", err)
 		}
@@ -70,6 +86,9 @@ func (app *App) handleImage(w http.ResponseWriter, r *http.Request, mediaURL str
 			entryToCache := cacheEntry{ContentType: mtype.String(), Data: mediaData, OriginalSize: originalSize}
 			app.Cache.SetWithTTL(mediaURL, entryToCache, int64(len(mediaData)), app.Config.CacheTTL)
 			w.Header().Set("Content-Type", entryToCache.ContentType)
+			if cacheControl := resp.Header.Get("Cache-Control"); cacheControl != "" {
+				w.Header().Set("Cache-Control", cacheControl)
+			}
 			if _, err := w.Write(entryToCache.Data); err != nil {
 				logger.Debug("Failed to write animated GIF", "error", err)
 			}
@@ -82,6 +101,9 @@ func (app *App) handleImage(w http.ResponseWriter, r *http.Request, mediaURL str
 		entryToCache := cacheEntry{ContentType: mtype.String(), Data: mediaData, OriginalSize: originalSize}
 		app.Cache.SetWithTTL(mediaURL, entryToCache, int64(len(mediaData)), app.Config.CacheTTL)
 		w.Header().Set("Content-Type", entryToCache.ContentType)
+		if cacheControl := resp.Header.Get("Cache-Control"); cacheControl != "" {
+			w.Header().Set("Cache-Control", cacheControl)
+		}
 		if _, err := w.Write(entryToCache.Data); err != nil {
 			logger.Debug("Failed to write unsupported image type", "error", err)
 		}
@@ -100,6 +122,9 @@ func (app *App) handleImage(w http.ResponseWriter, r *http.Request, mediaURL str
 		entryToCache := cacheEntry{ContentType: mtype.String(), Data: mediaData, OriginalSize: originalSize}
 		app.Cache.SetWithTTL(mediaURL, entryToCache, int64(len(mediaData)), app.Config.CacheTTL)
 		w.Header().Set("Content-Type", entryToCache.ContentType)
+		if cacheControl := resp.Header.Get("Cache-Control"); cacheControl != "" {
+			w.Header().Set("Cache-Control", cacheControl)
+		}
 		if _, err := w.Write(entryToCache.Data); err != nil {
 			logger.Debug("Failed to write original image", "error", err)
 		}
@@ -111,6 +136,9 @@ func (app *App) handleImage(w http.ResponseWriter, r *http.Request, mediaURL str
 	app.Cache.SetWithTTL(mediaURL, entryToCache, int64(len(optimizedImage)), app.Config.CacheTTL)
 
 	w.Header().Set("Content-Type", entryToCache.ContentType)
+	if cacheControl := resp.Header.Get("Cache-Control"); cacheControl != "" {
+		w.Header().Set("Cache-Control", cacheControl)
+	}
 	if _, err := w.Write(entryToCache.Data); err != nil {
 		logger.Debug("Failed to write optimized image", "error", err)
 	}

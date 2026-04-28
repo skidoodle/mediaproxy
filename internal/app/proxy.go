@@ -50,14 +50,15 @@ func (app *App) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !isSafeFetchableHost(parsedURL.Host) {
-		logger.Warn("Unsafe or invalid fetch domain requested", "host", parsedURL.Host)
+	host := parsedURL.Hostname()
+	if !app.isSafeFetchableHost(host) {
+		logger.Warn("Unsafe or invalid fetch domain requested", "host", host)
 		sendError(w, r, http.StatusBadRequest)
 		return
 	}
 
-	if app.Config.BaseURL == "" && !isAllowedDomain(parsedURL.Host, app.Config.AllowedDomains) {
-		logger.Warn("Domain not allowed", "domain", parsedURL.Host)
+	if app.Config.BaseURL == "" && !isAllowedDomain(host, app.Config.AllowedDomains) {
+		logger.Warn("Domain not allowed", "domain", host)
 		sendError(w, r, http.StatusForbidden)
 		return
 	}
@@ -78,7 +79,20 @@ func (app *App) handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Debug("Cache miss, performing HEAD request to origin")
-	headResp, err := app.Client.Head(mediaURL)
+	headReq, err := http.NewRequestWithContext(ctx, http.MethodHead, mediaURL, nil)
+	if err != nil {
+		logger.Error("Failed to create HEAD request", "error", err)
+		sendError(w, r, http.StatusInternalServerError)
+		return
+	}
+
+	if ua := r.Header.Get("User-Agent"); ua != "" {
+		headReq.Header.Set("User-Agent", ua)
+	} else {
+		headReq.Header.Set("User-Agent", app.UserAgent)
+	}
+
+	headResp, err := app.Client.Do(headReq)
 	if err != nil {
 		logger.Error("Failed to make HEAD request to origin", "error", err)
 		sendError(w, r, http.StatusInternalServerError)
