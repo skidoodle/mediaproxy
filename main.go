@@ -12,6 +12,10 @@ import (
 	"time"
 )
 
+var (
+	Version = "devel"
+)
+
 // main initializes and starts the mediaproxy HTTP server.
 func main() {
 	application, err := app.New()
@@ -23,8 +27,9 @@ func main() {
 	handler := application.Handler()
 
 	server := &http.Server{
-		Addr:         ":8080",
-		Handler:      handler,
+		Addr:    ":3000",
+		Handler: handler,
+
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  120 * time.Second,
@@ -46,7 +51,7 @@ func main() {
 		application.Close()
 	}()
 
-	application.Logger.Info("Starting server", "address", server.Addr, "log_level", application.Config.LogLevel.String())
+	application.Logger.Info("Starting server", "version", Version, "address", server.Addr, "log_level", application.Config.LogLevel.String())
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		application.Logger.Error("Could not start server", "error", err)
 		os.Exit(1)

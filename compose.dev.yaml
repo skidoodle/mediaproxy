@@ -1,22 +1,10 @@
 services:
-  mediaproxy:
-    build: .
-    container_name: mediaproxy
+  mediaproxy-dev:
+    container_name: mediaproxy-dev
+    build:
+      context: .
+      target: Dockerfile
     ports:
-      - "8080:8080"
-    # restart: unless-stopped
+      - "3000:3000"
     environment:
       - LOG_LEVEL=DEBUG
-      # - CACHE_TTL=30m
-      # - ALLOWED_DOMAINS=images.unsplash.com,static.pexels.com,*.example.com
-      # - DEFAULT_IMAGE_QUALITY=100
-      # - MAX_ALLOWED_SIZE=10485760
-      # - BASE_URL=cdn.example.com
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '0.5'
-    #       memory: '256M'
-    #     reservations:
-    #       cpus: '0.25'
-    #       memory: '128M'

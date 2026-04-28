@@ -1,0 +1,86 @@
+version: 2
+
+builds:
+  - id: mediaproxy
+    binary: mediaproxy
+    main: .
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=1
+    flags:
+      - -trimpath
+      - -tags=netgo
+    ldflags:
+      - -s -w -extldflags "-static"
+      - -X main.Version={{.Version}}
+
+archives:
+  - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: "mediaproxy_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+dockers:
+  - id: mediaproxy-amd64
+    ids: [mediaproxy]
+    image_templates:
+      - "ghcr.io/skidoodle/mediaproxy:{{ .Version }}-amd64"
+    dockerfile: Dockerfile.release
+    goos: linux
+    goarch: amd64
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+    extra_files:
+      - view
+    skip_push: false
+
+  - id: mediaproxy-arm64
+    ids: [mediaproxy]
+    image_templates:
+      - "ghcr.io/skidoodle/mediaproxy:{{ .Version }}-arm64"
+    dockerfile: Dockerfile.release
+    goos: linux
+    goarch: arm64
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+    extra_files:
+      - view
+    skip_push: false
+
+docker_manifests:
+  - name_template: "ghcr.io/skidoodle/mediaproxy:latest"
+    image_templates:
+      - "ghcr.io/skidoodle/mediaproxy:{{ .Version }}-amd64"
+      - "ghcr.io/skidoodle/mediaproxy:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/skidoodle/mediaproxy:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/skidoodle/mediaproxy:{{ .Version }}-amd64"
+      - "ghcr.io/skidoodle/mediaproxy:{{ .Version }}-arm64"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'

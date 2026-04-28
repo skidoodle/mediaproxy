@@ -1,14 +1,16 @@
 services:
   mediaproxy:
-    image: ghcr.io/skidoodle/mediaproxy
+    image: ghcr.io/skidoodle/mediaproxy:latest
     container_name: mediaproxy
-    ports:
-      - "8080:8080"
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     environment:
-      - CACHE_TTL=30m
-      - BASE_URL=cdn.example.com
-      - ALLOWED_DOMAINS=images.unsplash.com,static.pexels.com,*.example.com
-      - DEFAULT_IMAGE_QUALITY=100
-      - MAX_ALLOWED_SIZE=10485760
-      - CLIENT_TIMEOUT=120s
+      - LOG_LEVEL=INFO #(`DEBUG`, `INFO`, `WARN`, `ERROR`)
+      # - BASE_URL=cdn.example.com #(middleware mode)
+      # - CACHE_TTL=10m
+      # - ALLOWED_DOMAINS=images.unsplash.com,*.example.com #(standard mode)
+      # - MAX_ALLOWED_SIZE=52428800 # in bytes
+      # - DEFAULT_IMAGE_QUALITY=80 # (1-100)
+      # - CLIENT_TIMEOUT=2m
+      # - ALLOW_PRIVATE_IPS=false

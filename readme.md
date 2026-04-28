@@ -17,7 +17,7 @@ services:
     container_name: mediaproxy
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "3000:3000"
     environment:
       - ALLOWED_DOMAINS=images.pexels.com,media.giphy.com
 ```
@@ -30,7 +30,7 @@ services:
     container_name: mediaproxy
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "3000:3000"
     environment:
       - BASE_URL=cdn.example.com
 ```
