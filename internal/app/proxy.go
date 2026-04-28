@@ -24,7 +24,27 @@ func (app *App) handleProxy(w http.ResponseWriter, r *http.Request) {
 	var mediaURL string
 	if app.Config.BaseURL != "" {
 		baseURL := strings.TrimSuffix(app.Config.BaseURL, "/")
-		mediaURL = "https://" + baseURL + r.URL.Path
+		path := r.URL.Path
+
+		// Strip the base URL if the client accidentally included it in the path
+		prefixes := []string{
+			"/https://" + baseURL,
+			"/http://" + baseURL,
+			"/https:/" + baseURL,
+			"/http:/" + baseURL,
+			"/" + baseURL,
+		}
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(path, prefix) {
+				path = strings.TrimPrefix(path, prefix)
+				if !strings.HasPrefix(path, "/") {
+					path = "/" + path
+				}
+				break
+			}
+		}
+
+		mediaURL = "https://" + baseURL + path
 	} else {
 		mediaURL = r.URL.Path[1:]
 		if strings.HasPrefix(mediaURL, "https:/") && !strings.HasPrefix(mediaURL, "https://") {
@@ -105,8 +125,14 @@ func (app *App) handleProxy(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if headResp.StatusCode != http.StatusOK {
-		logger.Warn("Origin server returned non-200 status for HEAD request, passing through", "status", headResp.StatusCode)
+	if headResp.StatusCode < 200 || headResp.StatusCode >= 400 {
+		logger.Warn("Origin server returned error status for HEAD request", "status", headResp.StatusCode)
+		sendError(w, r, headResp.StatusCode)
+		return
+	}
+
+	if headResp.StatusCode != http.StatusOK && headResp.StatusCode != http.StatusPartialContent {
+		logger.Warn("Origin server returned unexpected status for HEAD request, passing through", "status", headResp.StatusCode)
 		app.handleStream(w, r, mediaURL)
 		return
 	}

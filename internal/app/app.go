@@ -26,7 +26,7 @@ type App struct {
 // New initializes and returns a new App instance. It loads configuration
 // from environment variables, configures the logger, sets up the Ristretto cache,
 // and prepares an optimized HTTP client with connection pooling.
-func New() (*App, error) {
+func New(version string) (*App, error) {
 	config := loadConfig()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: config.LogLevel}))
@@ -45,7 +45,7 @@ func New() (*App, error) {
 		Config:    config,
 		Cache:     cache,
 		Logger:    logger,
-		UserAgent: "mediaproxy/1.0 (https://github.com/skidoodle/mediaproxy)",
+		UserAgent: fmt.Sprintf("mediaproxy/%s (https://github.com/skidoodle/mediaproxy)", version),
 	}
 
 	httpClient := &http.Client{

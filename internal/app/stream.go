@@ -43,26 +43,40 @@ func (app *App) handleStream(w http.ResponseWriter, r *http.Request, mediaURL st
 		}
 	}()
 
-	// Only copy a safe subset of headers from the origin response.
-	safeHeaders := []string{
-		"Content-Type",
-		"Content-Length",
-		"Content-Range",
-		"Accept-Ranges",
-		"Cache-Control",
-		"Expires",
-		"Last-Modified",
-		"Etag",
+	if originResp.StatusCode < 200 || originResp.StatusCode >= 400 {
+		logger.Warn("Origin server returned error status for GET request", "status", originResp.StatusCode)
+		sendError(w, r, originResp.StatusCode)
+		return
 	}
 
-	for _, headerName := range safeHeaders {
-		if val := originResp.Header.Get(headerName); val != "" {
-			w.Header().Set(headerName, val)
+	// Copy all headers from the origin response, excluding hop-by-hop headers.
+	hopByHop := map[string]bool{
+		"Connection":          true,
+		"Keep-Alive":          true,
+		"Proxy-Authenticate":  true,
+		"Proxy-Authorization": true,
+		"Te":                  true,
+		"Trailers":            true,
+		"Transfer-Encoding":   true,
+		"Upgrade":             true,
+	}
+
+	for k, vv := range originResp.Header {
+		if !hopByHop[http.CanonicalHeaderKey(k)] {
+			for _, v := range vv {
+				w.Header().Add(k, v)
+			}
 		}
 	}
 
 	w.WriteHeader(originResp.StatusCode)
-	if _, err := io.Copy(w, originResp.Body); err != nil {
+
+	// In order to properly stream large files and support Range requests,
+	// we need to flush data to the client continuously.
+	// io.CopyBuffer handles this much more efficiently than io.Copy.
+	buf := make([]byte, 32*1024) // 32KB buffer
+	if _, err := io.CopyBuffer(w, originResp.Body, buf); err != nil {
 		logger.Debug("Error copying stream to client", "error", err)
 	}
+
 }

@@ -18,7 +18,7 @@ var (
 
 // main initializes and starts the mediaproxy HTTP server.
 func main() {
-	application, err := app.New()
+	application, err := app.New(Version)
 	if err != nil {
 		slog.Error("Failed to initialize application", "error", err)
 		os.Exit(1)

@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -57,6 +58,29 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	return n, err
 }
 
+// Flush implements the http.Flusher interface to ensure streamed media
+// doesn't get buffered indefinitely.
+func (rw *responseWriter) Flush() {
+	if flusher, ok := rw.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+// ReadFrom implements the io.ReaderFrom interface.
+// This is critical for high-performance video streaming (like handleStream).
+// It allows standard library functions like io.Copy to use optimized zero-copy
+// paths (like sendfile) when moving data from the origin directly to the client,
+// bypassing our custom Write method entirely while still tracking bytes.
+func (rw *responseWriter) ReadFrom(src io.Reader) (int64, error) {
+	if rw.statusCode == 0 {
+		rw.WriteHeader(http.StatusOK)
+	}
+
+	n, err := io.Copy(rw.ResponseWriter, src)
+	rw.bytesWritten += n
+	return n, err
+}
+
 // isIgnoredPath checks whether the given request path should bypass logging
 // and proxying. Used to suppress noisy requests like favicons and bots.
 func isIgnoredPath(path string) bool {
@@ -76,7 +100,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Source", "github.com/skidoodle/mediaproxy")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'")
 
 		if isIgnoredPath(r.URL.Path) {
 			sendError(w, r, http.StatusNotFound)

@@ -42,6 +42,12 @@ func (app *App) handleImage(w http.ResponseWriter, r *http.Request, mediaURL str
 		}
 	}()
 
+	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+		logger.Warn("Origin server returned error status for GET request", "status", resp.StatusCode)
+		sendError(w, r, resp.StatusCode)
+		return
+	}
+
 	if resp.ContentLength > app.Config.MaxAllowedSize {
 		logger.Error("Image exceeds max allowed size", "limit", app.Config.MaxAllowedSize, "size", resp.ContentLength)
 		sendError(w, r, http.StatusRequestEntityTooLarge)
