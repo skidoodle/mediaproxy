@@ -15,6 +15,7 @@ type Config struct {
 	LogLevel            slog.Level
 	BaseURL             string
 	AllowPrivateIPs     bool
+	TrustedProxies      []string
 }
 
 // loadConfig parses environment variables and returns a populated Config struct.
@@ -29,6 +30,7 @@ func loadConfig() *Config {
 		BaseURL:             getEnvString("BASE_URL", ""),
 		LogLevel:            getEnvLogLevel("LOG_LEVEL", slog.LevelInfo),
 		AllowPrivateIPs:     getEnvBool("ALLOW_PRIVATE_IPS", false),
+		TrustedProxies:      getEnvStringSlice("TRUSTED_PROXIES", []string{}),
 	}
 }
 

@@ -96,7 +96,7 @@ func New(version string) (*App, error) {
 // Handler wraps the core proxy handler with necessary middleware
 // (such as logging and telemetry) and returns an http.Handler.
 func (app *App) Handler() http.Handler {
-	return loggingMiddleware(http.HandlerFunc(app.handleProxy))
+	return app.loggingMiddleware(http.HandlerFunc(app.handleProxy))
 }
 
 // Close gracefully shuts down the application components, including the cache.

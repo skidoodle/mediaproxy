@@ -66,6 +66,7 @@ Activated by setting the `BASE_URL` environment variable. Acts as a transparent 
 | `DEFAULT_IMAGE_QUALITY` | Quality for optimized WebP images (1-100). | `80` |
 | `CLIENT_TIMEOUT` | Timeout for fetching media from the origin. | `2m` |
 | `ALLOW_PRIVATE_IPS` | Allow fetching from private/local IP ranges. | `false` |
+| `TRUSTED_PROXIES` | Comma-separated list of trusted proxy IPs/CIDRs. | (empty) |
 
 ## License
 

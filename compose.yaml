@@ -14,3 +14,4 @@ services:
       # - DEFAULT_IMAGE_QUALITY=80 # (1-100)
       # - CLIENT_TIMEOUT=2m
       # - ALLOW_PRIVATE_IPS=false
+      # - TRUSTED_PROXIES=127.0.0.1,::1

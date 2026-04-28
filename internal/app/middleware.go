@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -96,7 +97,7 @@ func isIgnoredPath(path string) bool {
 // loggingMiddleware injects a contextual logger and a metrics tracker into the request context.
 // It intercepts the response to log comprehensive telemetry, including status codes, latency,
 // and bytes saved via compression.
-func loggingMiddleware(next http.Handler) http.Handler {
+func (app *App) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Source", "github.com/skidoodle/mediaproxy")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -107,13 +108,44 @@ func loggingMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		remoteAddr := r.RemoteAddr
+		if len(app.Config.TrustedProxies) > 0 {
+			host, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				host = r.RemoteAddr
+			}
+
+			isTrusted := false
+			for _, trusted := range app.Config.TrustedProxies {
+				if host == trusted {
+					isTrusted = true
+					break
+				}
+				if _, ipnet, err := net.ParseCIDR(trusted); err == nil {
+					if ip := net.ParseIP(host); ip != nil && ipnet.Contains(ip) {
+						isTrusted = true
+						break
+					}
+				}
+			}
+
+			if isTrusted {
+				if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+					ips := strings.Split(xff, ",")
+					remoteAddr = strings.TrimSpace(ips[0])
+				} else if xri := r.Header.Get("X-Real-IP"); xri != "" {
+					remoteAddr = xri
+				}
+			}
+		}
+
 		start := time.Now()
 		requestID := strconv.FormatInt(time.Now().UnixNano(), 36)
 		logger := slog.With(
 			"request_id", requestID,
 			"method", r.Method,
 			"path", r.URL.Path,
-			"remote_addr", r.RemoteAddr,
+			"remote_addr", remoteAddr,
 		)
 
 		metrics := &requestMetrics{}
