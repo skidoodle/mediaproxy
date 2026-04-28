@@ -1,4 +1,4 @@
-FROM golang:1.25.4-alpine AS builder
+FROM golang:1.26-alpine AS builder
 RUN apk add --no-cache build-base vips-dev
 WORKDIR /app
 COPY go.mod go.sum ./
