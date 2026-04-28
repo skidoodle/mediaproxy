@@ -1,10 +1,10 @@
-FROM alpine:latest AS sys
-RUN apk add --no-cache ca-certificates vips tzdata && \
-    addgroup -S mediaproxy && adduser -S mediaproxy -G mediaproxy && \
-    rm -rf /bin/sh /bin/ash /bin/busybox /sbin/apk /etc/apk /lib/apk /var/cache/apk
+FROM debian:bookworm-slim
 
-FROM scratch
-COPY --from=sys / /
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates libvips tzdata && \
+    groupadd -r mediaproxy && useradd -r -g mediaproxy mediaproxy && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/* /bin/sh /bin/bash /usr/bin/apt* /usr/bin/dpkg*
+
 COPY --chown=mediaproxy:mediaproxy mediaproxy /mediaproxy
 
 USER mediaproxy
